@@ -27,7 +27,7 @@ inject_font("Trunic-Strikethrough", BASE_DIR / "build" / "Trunic-Strikethrough.t
 
 st.title("Trunic Generator")
 
-english = st.text_area("English")
+english = st.text_area("English", value="Hello, World!")
 
 strikethrough_enabled = st.checkbox("Strikethrough", True)
 with st.container(horizontal=True, vertical_alignment="center"):
@@ -35,8 +35,8 @@ with st.container(horizontal=True, vertical_alignment="center"):
     font_size = st.number_input(
         label = "Font size",
         label_visibility = "collapsed",
-        min_value = 0,
-        max_value = 100,
+        min_value=0,
+        max_value=200,
         value=40,
         width = 130
     )

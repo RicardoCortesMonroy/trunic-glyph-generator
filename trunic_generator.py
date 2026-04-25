@@ -9,7 +9,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent
 
 if platform.system() == 'Windows':
-    os.environ["PHONEMIZER_ESPEAK_LIBRARY"]= BASE_DIR / "libespeak-ng.dll"
+    os.environ["PHONEMIZER_ESPEAK_LIBRARY"]= str(BASE_DIR / "libespeak-ng.dll")
 
 vowels = {
     "ʊɹ"  : 0b0000000011101,
