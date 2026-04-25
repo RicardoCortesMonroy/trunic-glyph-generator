@@ -1,10 +1,13 @@
 import streamlit as st
 import base64
 from trunic_generator import english_to_trunic
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
 
 # Load and inject the font once (Streamlit re-runs this on each interaction,
 # but that's fine — it's fast)
-def inject_font(font_family, ttf_path):
+def inject_font(font_family: str, ttf_path: Path):
     with open(ttf_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
 
@@ -19,8 +22,8 @@ def inject_font(font_family, ttf_path):
         unsafe_allow_html=True
     )
 
-inject_font("Trunic-Regular", r"build\Trunic-Regular.ttf")
-inject_font("Trunic-Strikethrough", r"build\Trunic-Strikethrough.ttf")
+inject_font("Trunic-Regular", BASE_DIR / "build" / "Trunic-Regular.ttf")
+inject_font("Trunic-Strikethrough", BASE_DIR / "build" / "Trunic-Strikethrough.ttf")
 
 st.title("Trunic Generator")
 

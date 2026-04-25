@@ -1,10 +1,15 @@
 import math
 import os
+import platform
 import re
 import json
 from phonemizer import phonemize
+from pathlib import Path
 
-os.environ["PHONEMIZER_ESPEAK_LIBRARY"]= r"libespeak-ng.dll"
+BASE_DIR = Path(__file__).parent
+
+if platform.system() == 'Windows':
+    os.environ["PHONEMIZER_ESPEAK_LIBRARY"]= BASE_DIR / "libespeak-ng.dll"
 
 vowels = {
     "ʊɹ"  : 0b0000000011101,
