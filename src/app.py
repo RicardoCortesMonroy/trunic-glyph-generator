@@ -74,33 +74,51 @@ st.markdown(f"""
 english = st.text_area("Input:", value="Hello, World!")
 
 # Trunic formatting options
-strikethrough_enabled = st.checkbox("Strikethrough", True)
 
-col1, col2 = st.columns([1,3])
+col1, col2 = st.columns(2)
 with col1:
-    minimise_inversions = st.checkbox("Minimise inversions", True)
-with col2:
-    st.markdown(
-        """
-        <div style="position:absolute;top:9px">
-            <span title="Prevents adjacent inverted glyph characters that may make certain words harder to read\ne.g. &quot;anemone&quot;, &quot;aluminum&quot;, &quot;biohazard&quot;">
-            ⓘ
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    strikethrough_enabled = st.checkbox("Strikethrough", True)
 
-with st.container(horizontal=True, vertical_alignment="center"):
-    st.write("Font size")
-    font_size = st.number_input(
-        label = "Font size",
-        label_visibility = "collapsed",
-        min_value=0,
-        max_value=200,
-        value=40,
-        width = 130
-    )
+with col2:
+    col21, col22 = st.columns(2)
+    with col21:
+        minimise_inversions = st.checkbox("Minimise inversions", False)
+    with col22:
+        st.markdown(
+            """
+            <div style="position:absolute;top:9px">
+                <span title="Prevents adjacent inverted glyph characters that may make certain words harder to read\ne.g. &quot;anemone&quot;, &quot;aluminum&quot;, &quot;biohazard&quot;">
+                ⓘ
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+col1, col2 = st.columns(2)
+with col1:
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.write("Font size")
+        font_size = st.number_input(
+            label = "Font size",
+            label_visibility = "collapsed",
+            min_value=0,
+            max_value=200,
+            value=40,
+            width=130
+        )
+with col2:
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.write("Word spacing")
+        word_spacing = st.number_input(
+            label = "Word spacing",
+            label_visibility = "collapsed",
+            min_value=0,
+            max_value=50,
+            value=15,
+            width=130
+        ) - 10
+
 
 glyph_unicode_list = english_to_trunic_cache(english, minimise_inversions)
 unicode_text = ''.join([c if not isinstance(c,int) else f"&#x{c:x}" for c in glyph_unicode_list])
@@ -114,7 +132,7 @@ st.markdown(f"""
         font-size: {font_size}px;
         line-height: 1.0;
         letter-spacing: 0.0em;
-        word-spacing: 0.2em;
+        word-spacing: {word_spacing}px;
         padding: 1rem;
         border: 1px solid #ccc;
         border-radius: 8px;
