@@ -12,10 +12,10 @@ def get_url(font_name: Path) -> str:
         b64 = base64.b64encode(f.read()).decode()
     return f'data:font/truetype;base64,{b64}'
 
-@st.cache_data
-def english_to_trunic_cache(text):
+# @st.cache_data
+def english_to_trunic_cache(*args, **kwargs):
     """Wrapper for english_to_trunic function with data cache for Streamlit"""
-    return english_to_trunic(text)
+    return english_to_trunic(*args, **kwargs)
 
 
 # Page Title
@@ -75,6 +75,22 @@ english = st.text_area("Input:", value="Hello, World!")
 
 # Trunic formatting options
 strikethrough_enabled = st.checkbox("Strikethrough", True)
+
+col1, col2 = st.columns([1,3])
+with col1:
+    minimise_inversions = st.checkbox("Minimise inversions", True)
+with col2:
+    st.markdown(
+        """
+        <div style="position:absolute;top:9px">
+            <span title="Prevents adjacent inverted glyph characters that may make certain words harder to read\ne.g. &quot;anemone&quot;, &quot;aluminum&quot;, &quot;biohazard&quot;">
+            ⓘ
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 with st.container(horizontal=True, vertical_alignment="center"):
     st.write("Font size")
     font_size = st.number_input(
@@ -86,7 +102,7 @@ with st.container(horizontal=True, vertical_alignment="center"):
         width = 130
     )
 
-glyph_unicode_list = english_to_trunic_cache(english)
+glyph_unicode_list = english_to_trunic_cache(english, minimise_inversions)
 unicode_text = ''.join([c if not isinstance(c,int) else f"&#x{c:x}" for c in glyph_unicode_list])
 
 font_family = "Trunic-Strikethrough" if strikethrough_enabled else "Trunic-Regular"
@@ -98,6 +114,7 @@ st.markdown(f"""
         font-size: {font_size}px;
         line-height: 1.0;
         letter-spacing: 0.0em;
+        word-spacing: 0.2em;
         padding: 1rem;
         border: 1px solid #ccc;
         border-radius: 8px;
