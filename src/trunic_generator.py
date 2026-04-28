@@ -62,13 +62,33 @@ consonants = {
     "_"   : 0b0000000000000
 }
 
+numbers = {
+    "0": 0b1000000000000,
+    "1": 0b0001000000000,
+    "2": 0b0010100000000,
+    "3": 0b0011100000000,
+    "4": 0b0010110100000,
+    "5": 0b0011110100000,
+    "6": 0b0010110111000,
+    "7": 0b0011110111000,
+    "8": 0b0010110111011,
+    "9": 0b0011110111011
+}
 
+
+with open(BASE_DIR / "Data" / "word_substitutions.json","r", encoding="utf-8") as f:
+        word_substitutions = json.loads(f.read())
+
+# re_sep = "\n\s\,\.\!\?\[\]\{\}\(\)\""
+re_sep = "[\W\n\s]"
 def word_replace(text:str, target:str, repl:str) -> str:
-    punctuation_pattern = "\n\s\,\.\!\?\[\]\{\}\(\)"
-    return re.sub(rf'(?:(?<=^)|(?<=[{punctuation_pattern}])){target}($|[{punctuation_pattern}])', rf'{repl}\1', text)
+    return re.sub(rf'(?:(?<=^)|(?<={re_sep})){target}($|{re_sep})', rf'{repl}\1', text)
 
 def normalize_ipa(raw_ipa_text:str)->str:
     ipa = raw_ipa_text
+
+    # Substring replacements
+    ipa = re.sub(rf'ifəl(?={re_sep})', r'ɪfəl', ipa) # e.g. beautiful
 
     # Dippthong replacements
     ipa = ipa.replace('ɜːɹ','ɜː')
@@ -82,23 +102,16 @@ def normalize_ipa(raw_ipa_text:str)->str:
     ipa = ipa.replace('ʌ','ə')
     ipa = ipa.replace('ɐ','ə')
     ipa = ipa.replace('ᵻ','ə')
-    ipa = ipa.replace('ɚ','ɜː') # e.g. "general"
+    ipa = ipa.replace('ɚɹ','ɜː') # e.g. numerous
+    ipa = ipa.replace('ɚ','ɜː') # e.g. general
     ipa = re.sub(r'ɔ(?!ɪ)', r'ɑː', ipa)
     ipa = re.sub(r'i(?!ː)', r'iː', ipa)
 
-    # # Deliaisons
-    ipa = re.sub(rf'(?:(?<=^)|(?<=[\s\,\.\!\?]))nɑːtɜː ɹ', 'nɑːt ə ɹ', ipa)
-    ipa = word_replace(ipa,'wən', 'wɑːn')
-    ipa = word_replace(ipa,'aʊtəv', 'aʊt əv')
-    ipa = word_replace(ipa,'nɑːtə', 'nɑːt ə')
-    ipa = word_replace(ipa,'əvə', 'əv ə')
-    ipa = word_replace(ipa,'wəzə', 'wəz ə')
-    ipa = word_replace(ipa,'fɜːɹə', 'fʊɹ ə')
-    ipa = word_replace(ipa,'aɪɐm', 'aɪ æm')
-    ipa = word_replace(ipa,'təbiː', 'tuː biː')
-    ipa = word_replace(ipa,'ðɪ', 'ðə')
+    ## Post-normalized word replacements and de-liaisons
+    for target, substitution in word_substitutions.items():
+        ipa = word_replace(ipa, target, substitution)
+    ipa = re.sub(rf'(?:(?<=^)|(?<=[\s\,\.\!\?]))nɑːtɜː ɹ', 'nɑːt ə ɹ', ipa) # e.g. not a rare
     ipa = re.sub(r'(?<=\S)ðə([\s\,\.\!\?])', r' ðə\1', ipa)
-
 
     # Punctuation spacing
     ipa = re.sub(r'(\s)([\.\,\!\%\)])',r'\2\1', ipa)
@@ -115,29 +128,33 @@ def extract_next_phoneme(string:str, start:int)->str:
     for phoneme in vowels.keys():
         if string[start:].startswith(phoneme):
             return phoneme
+    for phoneme in numbers.keys():
+        if string[start:].startswith(phoneme):
+            return phoneme
     return string[start]
 
 def convert_to_normalized_ipa(text: str) -> str:
-    # Preprocessing
-    text = text.replace('\n','[,]')
-    text = text.replace(' – ',',,')
-    text = text.replace(' - ',',,')
+
+    dont_phonemize = "1234567890,.–-(){}[]<>/\\%!?*^:;`¬|\n!\"°#~+£$&"
 
     ipa = phonemize(
         text,
         language="en-us",
         backend="espeak",
         preserve_punctuation=True,
+        punctuation_marks=dont_phonemize
     )
     print(f"raw: {ipa}")
-    ipa = ipa.replace('[,]', '\n')
-    ipa = ipa.replace(',,', ' - ')
     ipa = normalize_ipa(ipa)
     print(f"normalized: {ipa}")
 
     return ipa
 
-def english_to_trunic(text:str, minimise_inversions:bool=False) -> list:
+def english_to_trunic(
+        text:str,
+        minimise_inversions:bool=False,
+        convert_numbers:bool=True
+    ) -> list:
     """
     Takes English text and converts it into a list of unicode characters (or punctuation)
     to be rendered in HTML with one of the Trunic fonts. The phonemes used to create the 
@@ -151,18 +168,24 @@ def english_to_trunic(text:str, minimise_inversions:bool=False) -> list:
     ipa = convert_to_normalized_ipa(text)
     
     syllables = []
-    syllable_names = []
     cur = 0
-    word_cur = 0
 
-    with open(BASE_DIR / "Data" / "unicode_mapping.json","r") as f:
+    with open(BASE_DIR / "Data" / "unicode_mapping.json","r", encoding="utf-8") as f:
         unicode_mapping = json.loads(f.read())
 
     while cur < len(ipa):
         phoneme_1 = extract_next_phoneme(ipa, cur)
+
         if phoneme_1 == ' ':
             syllables.append(' ')
-            word_cur = 0
+            cur += 1
+            continue
+        elif phoneme_1 in numbers:
+            if convert_numbers:
+                syllable = unicode_mapping[phoneme_1]
+            else:
+                syllable = phoneme_1
+            syllables.append(syllable)
             cur += 1
             continue
 
@@ -180,30 +203,24 @@ def english_to_trunic(text:str, minimise_inversions:bool=False) -> list:
         # Full syllable identified
         if not vowel_only and syllable_name in unicode_mapping:
             cur += len(syllable_name)
-            word_cur += len(syllable_name)
             
             syllable_unicode = unicode_mapping.get(syllable_name)
             syllables.append(syllable_unicode)
-            syllable_names.append(syllable_name)
 
         # Only next phoneme has a mapping
         elif phoneme_1 in unicode_mapping:
             cur += len(phoneme_1)
-            word_cur += len(phoneme_1)
 
             syllable_unicode = unicode_mapping.get(phoneme_1)
             syllables.append(syllable_unicode)
-            syllable_names.append(phoneme_1)
 
         # Next phoneme is not a mappable object, render it literally
         else:
             cur += len(phoneme_1)
-            word_cur += len(phoneme_1)
 
             if phoneme_1 == '\n':
                 phoneme_1 = '<br>'
 
             syllables.append(phoneme_1)
-            syllable_names.append(phoneme_1)
 
     return syllables
